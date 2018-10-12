@@ -25,7 +25,6 @@
 			<div class="col-md">
 				Afficher une catégorie :
 				<select name="selectCategory" id="selectCategory"></select>
-				<input type="button" id="testremove">
 			</div>
 		</div>
 		<br>
@@ -73,8 +72,8 @@
 		var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 		var osmAttrib='Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
 		var france = new L.TileLayer(osmUrl, {minZoom: 5, maxZoom: 15, attribution: osmAttrib});
-		var markerGroup = L.layerGroup().addTo(map);
 		map.addLayer(france);
+		var marker = new Array();
 
 		iconPP = L.icon({
 			iconUrl: 'pepe.gif',
@@ -100,6 +99,11 @@
 		});
 		
 		$('#selectCategory').on('change', function() {
+			//On remove les markers déjà présents sur la map
+			for(i=0;i<marker.length;i++) {
+			    map.removeLayer(marker[i]);
+			}
+			
 			var selectCategory = $("#selectCategory").val();
 			var urlplace = 'https://api.cours-webservice.arrobe.fr/v2/places/category/';
 			$.ajax({
@@ -112,8 +116,11 @@
 				success: function(data) {
 					$.each(data.place, function (key, entry) {
 						console.log(entry);
-						if(entry.latitude)
-						L.marker([entry.latitude, entry.longitude], {icon: iconPP}).addTo(map).bindPopup("<b>"+entry.name+"</b>");
+						if(entry.latitude){
+							var LamMarker = new L.marker([entry.latitude, entry.longitude], {icon: iconPP}).addTo(map).bindPopup("<b>"+entry.name+"</b>");
+							marker.push(LamMarker);
+							map.addLayer(marker[key]);
+						}
 					})
 				}
 			});
@@ -193,10 +200,6 @@
 	                });
 	        }
 		);
-
-		$('#testremove').click(function() {
-			map.clearLayers();
-		});
 	})
 </script>
 
