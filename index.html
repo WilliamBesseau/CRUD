@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="leaflet/leaflet.css">
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+<title>EPSI</title>
+
+<script src="jquery.min.js"></script>
+<script src="leaflet/leaflet.js"></script>
+<style type="text/css">
+#carte { min-height: 90vh; }
+</style>
+</head>
+<body>
+	<div class="container">
+		<h1>Salut</h1>
+		<div class="row">
+			<div class="col-md">
+				Afficher une catégorie :
+				<select name="selectCategory" id="selectCategory"></select>
+				<input type="button" id="testremove">
+			</div>
+		</div>
+		<br>
+		<div class="row">
+			<div class="col-md">
+				Créer une catégorie :
+				<form method="post" action="index.php" id="formcategory">
+					<input type="text" name="category" id="category" placeholder="Name your category">
+					<input type="submit" name="submit">
+				</form>
+			</div>
+			<div class="col-md">
+				Créer un lieu :
+				<form method="post" action="index.php" id="formplace">
+					<select name="selectCategory2" id="selectCategory2"></select>
+					<input type="text" name="name" id="name" placeholder="Name">
+					<input type="text" name="address" id="address" placeholder="Address">
+					<input type="text" name="postal_code" id="postal_code" placeholder="Postal Code">
+					<input type="text" name="city" id="city" placeholder="City">				
+					<input type="submit" name="submit">
+				</form>
+			</div>
+		</div>
+		<br>
+		<div id="carte"></div>
+	</div>
+
+<script>
+	$(document).ready(function(){
+		let dropdown = $('#selectCategory');
+
+		dropdown.empty();
+		dropdown.append('<option selected="true" disabled>Choose a category</option>');
+		dropdown.prop('selectedIndex', 0);
+
+		let dropdown2 = $('#selectCategory2');
+
+		dropdown2.empty();
+		dropdown2.append('<option selected="true" disabled>Choose a category</option>');
+		dropdown2.prop('selectedIndex', 0);
+
+		const urlcat = 'https://api.cours-webservice.arrobe.fr/v2/category';
+
+		var map = new L.Map('carte').setView([46.85, 1.5818], 6);
+		var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+		var osmAttrib='Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+		var france = new L.TileLayer(osmUrl, {minZoom: 5, maxZoom: 15, attribution: osmAttrib});
+		var markerGroup = L.layerGroup().addTo(map);
+		map.addLayer(france);
+
+		iconPP = L.icon({
+			iconUrl: 'pepe.gif',
+			iconSize: [80, 60],
+			iconAnchor: [50, 40],
+			popupAnchor: [-3, -76],
+		});
+
+		$.ajax({
+			beforeSend: function(request) {
+	        request.setRequestHeader("apikey", '152ee5ee6dd9e414dd6bf2bcce0986c7e601cb714199210664f38a9a6326ade1');
+		    },
+		    dataType: 'json',
+		    type: 'get',
+		    url: urlcat,
+		    success: function(data) {
+
+		        $.each(data.category, function (key, entry) {
+		    	dropdown.append($('<option>').attr('value', data.category[key].id).text(data.category[key].name));
+		    	dropdown2.append($('<option>').attr('value', data.category[key].id).text(data.category[key].name));
+		  })
+	        }
+		});
+		
+		$('#selectCategory').on('change', function() {
+			var selectCategory = $("#selectCategory").val();
+			var urlplace = 'https://api.cours-webservice.arrobe.fr/v2/places/category/';
+			$.ajax({
+				beforeSend: function(request) {
+				request.setRequestHeader("apikey", '152ee5ee6dd9e414dd6bf2bcce0986c7e601cb714199210664f38a9a6326ade1');
+				},
+				dataType: 'json',
+				type: 'get',
+				url: urlplace + selectCategory,
+				success: function(data) {
+					$.each(data.place, function (key, entry) {
+						console.log(entry);
+						if(entry.latitude)
+						L.marker([entry.latitude, entry.longitude], {icon: iconPP}).addTo(map).bindPopup("<b>"+entry.name+"</b>");
+					})
+				}
+			});
+		});
+
+		$('#formcategory').submit(
+	        function (event) {
+	            // Arrête l'envoi du formulaire
+	            event.preventDefault();
+				// Récupération des variables
+	            var namecat = $("#category").val();
+				$.ajax({
+	            	beforeSend: function(request) {
+			        	request.setRequestHeader("apikey", '152ee5ee6dd9e414dd6bf2bcce0986c7e601cb714199210664f38a9a6326ade1');
+				    },
+	                type: 'POST',
+	                url: urlcat,
+	                data: JSON.stringify({
+	                    // Données envoyées au serveur
+						name: namecat,
+	                }),
+	                dataType: 'json',
+	                success: function (data) {
+						console.log("salut");
+						alert("Votre catégorie "+ data.name + "a bien été ajouté");
+					},
+					error : function(resultat, statut, erreur){
+						console.log("Statut :" + statut);
+						alert("Erreur de type : " + erreur);
+					},
+					// Autorisation du cross domain
+	                crossDomain: true	                
+				});
+			}
+		);
+
+		$('#formplace').submit(
+	        function (event) {
+	            // Arrête l'envoi du formulaire
+	            event.preventDefault();
+
+	            // Récupération des variables
+	            var selectCategory2 = $("#selectCategory2").val();
+	            var name = $("#name").val();
+	            var address = $("#address").val();
+	            var postal_code = $("#postal_code").val();
+	            var city = $("#city").val();
+				var urlplaces = 'https://api.cours-webservice.arrobe.fr/v2/places';
+
+
+	            // Envoi au serveur
+	            $.ajax({
+	            	beforeSend: function(request) {
+			        	request.setRequestHeader("apikey", '152ee5ee6dd9e414dd6bf2bcce0986c7e601cb714199210664f38a9a6326ade1');
+				    },
+	                type: 'POST',
+	                url: urlplaces,
+	                data: JSON.stringify({
+	                    // Données envoyées au serveur
+	                    category_id: selectCategory2,
+						name: name,
+						address: address,
+						postal_code: postal_code,
+						city: city
+	                }),
+	                dataType: 'json',
+	                success: function (data) {
+	                    // Affichage de l'objet
+						alert("Votre adresse "+ data.name +" a bien été ajoutée")
+	                },
+					error : function(resultat, statut, erreur){
+						console.log("Statut :" + statut);
+						alert("Erreur de type : " + erreur);
+					},
+	                // Autorisation du cross domain
+	                crossDomain: true
+	                });
+	        }
+		);
+
+		$('#testremove').click(function() {
+			map.clearLayers();
+		});
+	})
+</script>
+
+</body>
+</html>
