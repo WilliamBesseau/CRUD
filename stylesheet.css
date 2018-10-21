@@ -1,0 +1,16 @@
+.container{
+	display: flex;
+	flex-direction: row;
+	justify-content: space-around;
+}
+
+.row{
+	width: 90%;
+}
+
+input, select, button{
+	width: 90%;
+	margin: 5px;
+}
+
+#carte { min-height: 90vh; }
